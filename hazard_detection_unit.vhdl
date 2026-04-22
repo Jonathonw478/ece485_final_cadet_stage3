@@ -24,21 +24,24 @@ architecture Behavioral of hazard_detection_unit is
    signal double_stall : STD_LOGIC := '0';
 begin
     -- would opcodes of current and previous instructions be useful?
-    opcode <= instr(<define bit> downto <define bit>));
-    if_id_opcode <= if_id_instr(<define bit> downto <define bit>));
-    process(if_id_mem_read, if_id_rd, rs1, rs2, if_id_opcode, opcode, stall_counter -- any others?)
+    opcode <= instr(6 downto 0);
+    if_id_opcode <= if_id_instr(6 downto 0);
+    process(if_id_mem_read, if_id_rd, rs1, rs2, if_id_opcode, opcode, stall_counter)-- any others?)
     begin      
         if (reset = '1') then
             start_stall <= '0';
         -- stall cases, dependency on a (1)load from memory, (2) load_addr, (3) add, (4) addi/subi
-        elsif (<what control signals and opcodes?>) then -- single stall data dependency case
+        elsif ((if_id_opcode = "0010111" and  opcode = "0000011") or -- la -> lw
+               (if_id_opcode = "0010011" and opcode = "0110011") or -- addi -> lw
+               (if_id_opcode = "1100011" and opcode = "0010011")) then -- lw -> add
                 start_stall <= '1';
         elsif -- stall cases for branch or jump, needing time to calulate branch address, etc
-              (<what control signals and opcodes?>) then 
+              ((if_id_opcode = "0010011" and opcode = "1100011") or -- subi -> branch
+              (if_id_opcode = "1100011" and opcode = "1101111")) then -- is this correct for the jump?
                 start_stall <= '1';      
-        else        
+        else
                 start_stall <= '0';
-        end if;    
+        end if;
         
     end process;
 end Behavioral;

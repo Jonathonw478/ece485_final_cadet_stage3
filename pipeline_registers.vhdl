@@ -10,7 +10,6 @@ entity pipeline_registers is
         start_stall : in  STD_LOGIC;
         stall_counter : in integer;
       
-
         -- inputs from IF stage
         reg_write : in STD_LOGIC;
         alu_src : in STD_LOGIC;
@@ -22,6 +21,8 @@ entity pipeline_registers is
         instr : in  STD_LOGIC_VECTOR(31 downto 0);
         npc    : in  STD_LOGIC_VECTOR(31 downto 0);
         -- <add other IF registers?>
+        rd    : in STD_LOGIC_VECTOR(4 downto 0);
+        alu_op : in STD_LOGIC_VECTOR(3 downto 0);
         
         -- IF/ID pipeline registers
         if_id_reg_write : inout STD_LOGIC;
@@ -32,6 +33,8 @@ entity pipeline_registers is
         if_id_jump : inout STD_LOGIC;
         if_id_load_addr : inout STD_LOGIC;
         if_id_instr : inout  STD_LOGIC_VECTOR(31 downto 0);
+        if_id_npc    : inout  STD_LOGIC_VECTOR(31 downto 0);
+        if_id_rd    : inout STD_LOGIC_VECTOR(4 downto 0);
         
         if_id_reg1_data  : in  STD_LOGIC_VECTOR(31 downto 0);
         if_id_reg2_data  : in  STD_LOGIC_VECTOR(31 downto 0);
@@ -51,6 +54,12 @@ entity pipeline_registers is
         id_ex_instr : out STD_LOGIC_VECTOR(31 downto 0);
         id_ex_reg1_data  : inout  STD_LOGIC_VECTOR(31 downto 0);
         -- <add other id_ex registers>
+        id_ex_reg2_data  : inout  STD_LOGIC_VECTOR(31 downto 0);
+        id_ex_imm : inout STD_LOGIC_VECTOR(31 downto 0);
+        id_ex_alu_op : inout STD_LOGIC_VECTOR(3 downto 0);
+        id_ex_npc : inout STD_LOGIC_VECTOR(31 downto 0);
+        id_ex_rd : inout STD_LOGIC_VECTOR(4 downto 0);
+        id_ex_alu_result : in STD_LOGIC_VECTOR(31 downto 0);
         
         -- EX/MEM pipeline registers        
         ex_mem_reg_write : inout STD_LOGIC;
@@ -62,6 +71,13 @@ entity pipeline_registers is
         ex_mem_load_addr : inout STD_LOGIC;
         ex_mem_reg1_data : out STD_LOGIC_VECTOR(31 downto 0);
         -- <add other ex_mem registers>
+        ex_mem_reg2_data : out STD_LOGIC_VECTOR(31 downto 0);
+        ex_mem_alu_result : inout STD_LOGIC_VECTOR(31 downto 0);
+        ex_mem_npc : inout STD_LOGIC_VECTOR(31 downto 0);
+        ex_mem_imm : inout STD_LOGIC_VECTOR(31 downto 0);
+        ex_mem_rd : inout STD_LOGIC_VECTOR(4 downto 0);
+        
+        mem_data : in STD_LOGIC_VECTOR(31 downto 0);
         
         -- MEM/WB pipeline registers
         mem_wb_reg_write : out STD_LOGIC;
@@ -69,10 +85,10 @@ entity pipeline_registers is
         mem_wb_mem_read : out STD_LOGIC;
         mem_wb_mem_write : out STD_LOGIC;
         mem_wb_load_addr : out STD_LOGIC;
-        mem_wb_alu_result  : out STD_LOGIC_VECTOR(31 downto 0)
+        mem_wb_alu_result  : out STD_LOGIC_VECTOR(31 downto 0);
         -- <add other mem_wb registers>
-      
-      
+        mem_wb_mem_data   : out STD_LOGIC_VECTOR(31 downto 0);
+        mem_wb_rd : out STD_LOGIC_VECTOR(4 downto 0)
     );
 end pipeline_registers;
 
@@ -95,10 +111,46 @@ begin
             
             id_ex_reg_write <= '0';
             id_ex_alu_src <= '0';
-            -- <add other registers>
+            id_ex_mem_read <= '0';
+            id_ex_mem_write <= '0';
+            id_ex_branch <= '0';
+            id_ex_jump <= '0';
+            id_ex_load_addr <= '0';
+            id_ex_instr <= (others => '0');
+            id_ex_reg1_data  <= (others => '0');
+            id_ex_reg2_data  <= (others => '0');
+            id_ex_imm <= (others => '0');
+            id_ex_alu_op <= (others => '0');
+            id_ex_npc <= (others => '0');
+            id_ex_rd <= (others => '0');
 
+            -- EX/MEM Stage
+            ex_mem_reg_write <= '0';
+            ex_mem_alu_src <= '0';
+            ex_mem_mem_read <= '0';
+            ex_mem_mem_write <= '0';
+            ex_mem_branch <= '0';
+            ex_mem_jump <= '0';
+            ex_mem_load_addr <= '0';
+            ex_mem_reg1_data <= (others => '0');
+            ex_mem_reg2_data <= (others => '0');
+            ex_mem_alu_result <= (others => '0');
+            ex_mem_npc <= (others => '0');
+            ex_mem_imm <= (others => '0');
+            ex_mem_rd <= (others => '0');
+                        
+            -- MEM/WB Stage
+            mem_wb_reg_write <= '0';
+            mem_wb_alu_src <= '0';
+            mem_wb_mem_read <= '0';
+            mem_wb_mem_write <= '0';
+            mem_wb_load_addr <= '0';
+            mem_wb_alu_result <= (others => '0');
+            mem_wb_mem_data <= (others => '0');
+            mem_wb_rd <= (others => '0');
+            
         elsif rising_edge(clk) then
-            if (<various stall signals>) then  -- if stall, then insert a NOP
+            if (stall_counter /= 0) then  -- if stall, then insert a NOP
                 if_id_reg_write <= '0';
                 if_id_alu_src <= '0';
                 if_id_mem_read <= '0';
@@ -110,7 +162,8 @@ begin
                 if_id_npc    <= (others => '0');
 
                 -- <add other registers>
-
+                if_id_rd   <= (others => '0');
+                if_id_alu_op <= (others => '0');
                                 
             else               -- when stall resumes, the old fetched instruction should still be there
                 if_id_reg_write <= reg_write;
@@ -124,20 +177,53 @@ begin
                 if_id_npc <= npc;
 
                 -- <add other registers>
-
+                if_id_rd   <= rd;
+                if_id_alu_op <= alu_op;
             end if;      
             -- let instructions prior to stall complete, or move to next state
+            
+            -- ID/EX <- IF/ID
+            id_ex_reg_write <= if_id_reg_write;   
+            id_ex_alu_src <= if_id_alu_src;
+            id_ex_mem_read <= if_id_mem_read;
+            id_ex_mem_write <= if_id_mem_write;
+            id_ex_branch <= if_id_branch;
+            id_ex_jump <= if_id_jump;
+            id_ex_load_addr <= if_id_load_addr;
+            id_ex_rd    <= if_id_rd;      
             id_ex_instr <= if_id_instr;
             id_ex_npc    <= if_id_npc;
-            id_ex_reg1_data  <= if_id_reg1_data;   
-            -- <add other registers>       
-            ex_mem_reg_write <= id_ex_reg_write;   
-            ex_mem_npc <= id_ex_npc;
+            id_ex_reg1_data  <= if_id_reg1_data;
+            id_ex_reg2_data  <= if_id_reg2_data;
+            id_ex_imm  <= if_id_imm;
+            id_ex_alu_op <= if_id_alu_op;
+
+            
+            -- EX/MEM <- ID/EX
+            ex_mem_reg_write <= id_ex_reg_write;
+            ex_mem_alu_src <= id_ex_alu_src;
+            ex_mem_mem_read <= id_ex_mem_read;
+            ex_mem_mem_write <= id_ex_mem_write;
+            ex_mem_branch <= id_ex_branch;
+            ex_mem_jump <= id_ex_jump;
+            ex_mem_load_addr <= id_ex_load_addr;
             ex_mem_reg1_data <= id_ex_reg1_data;
-            -- <add other registers>
+            ex_mem_reg2_data <= id_ex_reg2_data;
+            ex_mem_npc <= id_ex_npc;
+            ex_mem_imm <= id_ex_imm;
+            ex_mem_rd <= id_ex_rd;
+            ex_mem_alu_result <= id_ex_alu_result;
+            
+            -- MEM/WB <- EX/MEM ------ Do I need branch and jump?
             mem_wb_reg_write <= ex_mem_reg_write;
-            mem_wb_alu_result  <= ex_mem_alu_result;
+            mem_wb_alu_src <= ex_mem_alu_src;
+            mem_wb_mem_read <= ex_mem_mem_read;
+            mem_wb_mem_write <= ex_mem_mem_write;
+            mem_wb_load_addr <= ex_mem_load_addr; 
+            mem_wb_alu_result <= ex_mem_alu_result;
             -- <add other registers>
+            mem_wb_mem_data <= mem_data;
+            mem_wb_rd <= ex_mem_rd;
 
         end if;
     end process;
