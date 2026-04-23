@@ -44,7 +44,7 @@ architecture Behavioral of riscv_pipeline is
     signal mem_read   : STD_LOGIC;
     signal mem_write, mem_write_chip  : STD_LOGIC;
     signal alu_src    : STD_LOGIC;
-    signal branch     : STD_LOGIC;
+    signal branch     : STD_LOGIC; -- maybe add branch out here...
     signal jump       : STD_LOGIC;
     signal load_addr  : STD_LOGIC;
     signal reg_write, reg_write_chip  : STD_LOGIC;
@@ -256,6 +256,7 @@ architecture Behavioral of riscv_pipeline is
             if_id_rd       : in STD_LOGIC_VECTOR(4 downto 0);
             rs1      : in STD_LOGIC_VECTOR(4 downto 0);
             rs2      : in STD_LOGIC_VECTOR(4 downto 0);
+            branch : in STD_LOGIC;
             -- need any other input registers?
             stall_counter  : in integer range 0 to 3 := 0;
             start_stall    : out STD_LOGIC
@@ -420,6 +421,7 @@ begin
             if_id_rd       => if_id_rd,
             rs1      => instr(19 downto 15),
             rs2      => instr(24 downto 20),
+            branch => branch,
             -- need any other input registers?
             stall_counter  => stall_counter,
             start_stall    => start_stall
@@ -516,9 +518,10 @@ begin
             
     next_pc <=  std_logic_vector(unsigned(ex_mem_npc) + unsigned(ex_mem_imm)) when (ex_mem_branch = '1' and not_equal_flag = '1') else -- branch case
                 std_logic_vector(unsigned(ex_mem_npc) + unsigned(ex_mem_imm)) when (ex_mem_jump = '1') else  -- jump case
-                pc when stall = '1' else   -- stall case
+                pc when (start_stall = '1' or stall_counter > 1) else   -- stall case
                 NPC; -- note: this happens during IF !!! 1st two during MEM
                             
+    -- MEM/WB pipeline register
     -- MEM/WB pipeline register
 
 

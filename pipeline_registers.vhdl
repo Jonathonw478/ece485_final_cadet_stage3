@@ -150,7 +150,7 @@ begin
             mem_wb_rd <= (others => '0');
             
         elsif rising_edge(clk) then
-            if (stall_counter /= 0) then  -- if stall, then insert a NOP
+            if (stall_counter > 1 or start_stall = '1') then  -- if stall, then insert a NOP
                 if_id_reg_write <= '0';
                 if_id_alu_src <= '0';
                 if_id_mem_read <= '0';

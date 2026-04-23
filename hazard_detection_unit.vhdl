@@ -12,6 +12,7 @@ entity hazard_detection_unit is
         if_id_rd       : in STD_LOGIC_VECTOR(4 downto 0);   -- previous instr destination register
         rs1      : in STD_LOGIC_VECTOR(4 downto 0);         -- current  instr source register
         rs2      : in STD_LOGIC_VECTOR(4 downto 0);         -- current  instr source register
+        branch   : in STD_LOGIC;
         -- need any other input registers?
         stall_counter  : in integer range 0 to 3 := 0;
         start_stall    : out STD_LOGIC
@@ -31,9 +32,7 @@ begin
         if (reset = '1') then
             start_stall <= '0';
         -- stall cases, dependency on a (1)load from memory, (2) load_addr, (3) add, (4) addi/subi
-        elsif ((if_id_opcode = "0010111" and  opcode = "0000011") or -- la -> lw
-               (if_id_opcode = "0010011" and opcode = "0110011") or -- addi -> lw
-               (if_id_opcode = "1100011" and opcode = "0010011")) then -- lw -> add
+        elsif (if_id_rd = rs1) then -- all data dependencies and subi -> branch -- do i include opcodes as well?
                 start_stall <= '1';
         elsif -- stall cases for branch or jump, needing time to calulate branch address, etc
               ((if_id_opcode = "0010011" and opcode = "1100011") or -- subi -> branch
