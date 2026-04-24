@@ -256,7 +256,6 @@ architecture Behavioral of riscv_pipeline is
             if_id_rd       : in STD_LOGIC_VECTOR(4 downto 0);
             rs1      : in STD_LOGIC_VECTOR(4 downto 0);
             rs2      : in STD_LOGIC_VECTOR(4 downto 0);
-            branch : in STD_LOGIC;
             -- need any other input registers?
             stall_counter  : in integer range 0 to 3 := 0;
             start_stall    : out STD_LOGIC
@@ -388,7 +387,7 @@ begin
     if_id_rs1 <= if_id_instr(19 downto 15);
     if_id_rs2 <= if_id_instr(24 downto 20);
     opcode <= instr(6 downto 0);
---    opcode <= if_id_instr(<define bit> downto <define bit>);
+
     -- Control unit
     control_unit_inst: control_unit
         port map (
@@ -421,7 +420,6 @@ begin
             if_id_rd       => if_id_rd,
             rs1      => instr(19 downto 15),
             rs2      => instr(24 downto 20),
-            branch => branch,
             -- need any other input registers?
             stall_counter  => stall_counter,
             start_stall    => start_stall

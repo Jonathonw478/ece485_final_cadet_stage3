@@ -165,7 +165,7 @@ begin
                 if_id_rd   <= (others => '0');
                 if_id_alu_op <= (others => '0');
                                 
-            else               -- when stall resumes, the old fetched instruction should still be there
+            else -- when stall resumes, the old fetched instruction should still be there
                 if_id_reg_write <= reg_write;
                 if_id_alu_src <= alu_src;
                 if_id_mem_read <= mem_read;
@@ -214,7 +214,7 @@ begin
             ex_mem_rd <= id_ex_rd;
             ex_mem_alu_result <= id_ex_alu_result;
             
-            -- MEM/WB <- EX/MEM ------ Do I need branch and jump?
+            -- MEM/WB <- EX/MEM
             mem_wb_reg_write <= ex_mem_reg_write;
             mem_wb_alu_src <= ex_mem_alu_src;
             mem_wb_mem_read <= ex_mem_mem_read;
